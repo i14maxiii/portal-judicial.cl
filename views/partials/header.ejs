@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'Portal Judicial' %></title>
+    <!-- Tailwind CSS (CDN para desarrollo rápido) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+
+    <!-- NAVBAR INSTITUCIONAL -->
+    <nav class="bg-slate-900 text-white shadow-lg border-b-4 border-blue-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo / Título -->
+                <div class="flex items-center gap-3">
+                    <i class="ph-fill ph-scales text-3xl text-blue-400"></i>
+                    <a href="/" class="font-bold text-xl tracking-wide uppercase">
+                        Portal <span class="text-blue-400">Judicial</span>
+                    </a>
+                </div>
+
+                <!-- Menú Usuario -->
+                <div class="flex items-center">
+                    <% if (user) { %>
+                        <!-- Usuario Logueado -->
+                        <div class="relative group">
+                            <button class="flex items-center gap-3 focus:outline-none hover:bg-slate-800 px-3 py-2 rounded-lg transition">
+                                <span class="text-sm font-medium hidden md:block text-slate-300">
+                                    <%= user.username %>
+                                </span>
+                                <% if (user.avatar) { %>
+                                    <img class="h-9 w-9 rounded-full border-2 border-blue-500" 
+                                         src="https://cdn.discordapp.com/avatars/<%= user.discord_id %>/<%= user.avatar %>.png" 
+                                         alt="Avatar">
+                                <% } else { %>
+                                    <div class="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center">
+                                        <i class="ph-bold ph-user"></i>
+                                    </div>
+                                <% } %>
+                                <i class="ph-bold ph-caret-down text-slate-400"></i>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform z-50 border border-slate-200">
+                                <div class="px-4 py-2 border-b border-slate-100 bg-slate-50">
+                                    <p class="text-xs text-slate-500 font-semibold uppercase">Funcionario</p>
+                                    <p class="text-sm font-bold text-slate-800 truncate"><%= user.username %></p>
+                                </div>
+                                
+                                <a href="/profile" class="block px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2">
+                                    <i class="ph-bold ph-identification-card"></i> Mi Perfil
+                                </a>
+                                <a href="/cv" class="block px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2">
+                                    <i class="ph-bold ph-file-text"></i> Hoja de Vida
+                                </a>
+                                
+                                <!-- Acceso a Papelera -->
+                                <a href="/admin/trash" class="block px-4 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 flex items-center gap-2">
+                                    <i class="ph-bold ph-trash"></i> Papelera de Causas
+                                </a>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                    <i class="ph-bold ph-sign-out"></i> Cerrar Sesión
+                                </a>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <!-- Usuario NO Logueado -->
+                        <a href="/auth/discord" class="flex items-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-2 rounded-md font-medium text-sm transition shadow-md">
+                            <i class="ph-fill ph-discord-logo text-lg"></i>
+                            Ingreso Funcionarios
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow">

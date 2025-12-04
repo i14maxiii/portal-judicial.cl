@@ -1,0 +1,34 @@
+{
+  "name": "portal-judicial-rp",
+  "version": "1.0.0",
+  "description": "Sistema de gestión judicial para Roleplay basado en Chile",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "init-db": "node src/config/database.js"
+  },
+  "keywords": [
+    "rp",
+    "fivem",
+    "judicial",
+    "chile"
+  ],
+  "author": "Fiscalia RP",
+  "license": "ISC",
+  "dependencies": {
+    "connect-sqlite3": "^0.9.13",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "passport": "^0.6.0",
+    "passport-discord": "^0.1.4",
+    "sqlite": "^5.0.1",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "tailwindcss": "^3.3.3"
+  }
+}

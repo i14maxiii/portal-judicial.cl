@@ -1,0 +1,118 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <a href="/dashboard" class="hover:text-blue-600">Inicio</a>
+        <i class="ph-bold ph-caret-right"></i>
+        <span>Resultados de Búsqueda</span>
+    </div>
+
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-slate-800">
+            Resultados para: "<span class="text-blue-600"><%= query %></span>"
+        </h2>
+        <p class="text-slate-500">Se encontraron <%= results.length %> coincidencia(s) en la base de datos.</p>
+    </div>
+
+    <% if (results.length === 0) { %>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+            <i class="ph-duotone ph-warning-circle text-4xl text-yellow-500 mb-3"></i>
+            <h3 class="text-lg font-bold text-yellow-800">Sin Resultados</h3>
+            <p class="text-yellow-700">No se encontraron registros que coincidan con tu búsqueda.</p>
+            <a href="/dashboard" class="inline-block mt-4 text-sm font-bold text-yellow-800 hover:underline">Volver a intentar</a>
+        </div>
+    <% } else { %>
+        
+        <div class="grid gap-6">
+            <% results.forEach(item => { %>
+                
+                <!-- TARJETA DE CIUDADANO -->
+                <% if (type === 'person') { %>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-6">
+                        <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i class="ph-duotone ph-user text-4xl text-slate-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-800"><%= item.nombre_completo %></h3>
+                                    <p class="text-sm text-slate-500 font-mono">RUT: <%= item.rut %></p>
+                                </div>
+                                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full uppercase">Ciudadano</span>
+                            </div>
+                            
+                            <div class="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                <p class="text-xs font-bold text-slate-500 uppercase mb-1">Antecedentes Penales:</p>
+                                <p class="text-sm text-slate-700"><%= item.antecedentes || 'Sin antecedentes registrados.' %></p>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+
+                <!-- TARJETA DE VEHICULO -->
+                <% if (type === 'vehicle') { %>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-6">
+                        <div class="w-24 h-24 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                            <i class="ph-duotone ph-car text-4xl text-emerald-500"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-800"><%= item.patente %></h3>
+                                    <p class="text-sm text-slate-500"><%= item.modelo %> - <%= item.color %></p>
+                                </div>
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full uppercase">Vehículo</span>
+                            </div>
+                            
+                            <div class="mt-4 grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-500 uppercase">Dueño Registrado</p>
+                                    <p class="text-sm font-mono text-slate-700"><%= item.owner_rut || 'Sin Información' %></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+
+                <!-- TARJETA DE CAUSA (CON SOFT DELETE) -->
+                <% if (type === 'cause') { %>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 <%= item.estado === 'ABIERTA' ? 'border-l-red-500' : 'border-l-slate-300' %> group relative">
+                        
+                        <!-- Botón de Archivar -->
+                        <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition">
+                            <form action="/causes/delete" method="POST" onsubmit="return confirm('¿Seguro que desea enviar esta causa a la papelera?');">
+                                <input type="hidden" name="cause_id" value="<%= item.id %>">
+                                <button type="submit" class="p-2 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition" title="Archivar Causa">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="flex justify-between items-start mb-4 pr-12">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1">Causa RUC: <%= item.ruc %></h3>
+                                <p class="text-sm text-slate-500">RIT: <%= item.rit || 'N/A' %></p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase <%= item.estado === 'ABIERTA' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600' %>">
+                                <%= item.estado %>
+                            </span>
+                        </div>
+                        
+                        <p class="text-slate-700 mb-4 bg-slate-50 p-3 rounded text-sm"><%= item.descripcion %></p>
+                        
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <i class="ph-bold ph-user-focus"></i>
+                            <span>Imputado: <%= item.imputado_rut %></span>
+                            <span class="mx-2">•</span>
+                            <span>Creado: <%= new Date(item.created_at).toLocaleDateString() %></span>
+                        </div>
+                    </div>
+                <% } %>
+
+            <% }) %>
+        </div>
+
+    <% } %>
+</div>
+
+<%- include('../partials/footer') %>
