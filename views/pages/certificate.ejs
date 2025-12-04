@@ -1,0 +1,89 @@
+<%- include('../partials/header') %>
+
+<!-- Contenedor principal con estilo de hoja carta para la vista previa -->
+<div class="max-w-[210mm] mx-auto my-10 bg-white shadow-xl p-16 print-container relative min-h-[297mm]">
+    
+    <!-- Botón Flotante para Descargar (Solo visible en pantalla) -->
+    <div class="absolute top-4 right-4 no-print">
+        <button onclick="window.print()" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition font-bold">
+            <i class="ph-bold ph-printer"></i>
+            Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <!-- Encabezado del Documento -->
+    <div class="text-center border-b-2 border-slate-800 pb-6 mb-8">
+        <h1 class="text-3xl font-serif font-bold text-slate-900 uppercase tracking-widest mb-2">Poder Judicial</h1>
+        <h2 class="text-xl font-serif text-slate-600 uppercase">República de Chile</h2>
+        <div class="mt-4 flex justify-center">
+            <i class="ph-fill ph-scales text-4xl text-slate-800"></i>
+        </div>
+    </div>
+
+    <!-- Título del Certificado -->
+    <div class="text-center mb-12">
+        <h3 class="text-2xl font-bold uppercase underline decoration-2 underline-offset-4">Certificado de Antecedentes</h3>
+        <p class="text-sm text-slate-500 mt-2 font-mono">EMISIÓN ELECTRÓNICA OFICIAL</p>
+    </div>
+
+    <!-- Cuerpo del Certificado -->
+    <div class="space-y-6 text-justify leading-relaxed text-slate-800">
+        <p>
+            El <strong>Servicio de Registro Civil e Identificación</strong> certifica que, según los registros de la base de datos nacional, la persona identificada como:
+        </p>
+
+        <div class="bg-slate-50 border border-slate-200 p-6 my-6 rounded">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-500 uppercase font-bold">Nombre Completo</p>
+                    <p class="text-lg font-bold"><%= user.username %></p> <!-- En futuro usar nombre real de tabla citizens -->
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 uppercase font-bold">Identificador (RUT/ID)</p>
+                    <p class="text-lg font-mono"><%= user.discord_id %></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 uppercase font-bold">Fecha de Emisión</p>
+                    <p class="text-lg"><%= new Date().toLocaleDateString('es-CL') %></p>
+                </div>
+            </div>
+        </div>
+
+        <p class="mb-4">
+            Presenta la siguiente situación en relación a condenas y antecedentes penales vigentes:
+        </p>
+
+        <!-- Bloque de Antecedentes -->
+        <div class="border-t-2 border-b-2 border-slate-200 py-8 text-center">
+            <% if (antecedentes && antecedentes.length > 0) { %>
+                <ul class="text-left list-disc pl-10">
+                    <% antecedentes.forEach(ant => { %>
+                        <li class="font-bold text-red-600"><%= ant %></li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <h2 class="text-3xl font-bold text-slate-300 uppercase tracking-widest">SIN ANTECEDENTES</h2>
+                <p class="text-sm text-slate-400 mt-2">(No registra anotaciones penales vigentes)</p>
+            <% } %>
+        </div>
+
+        <p class="text-sm mt-8">
+            Se extiende el presente certificado a petición del interesado para los fines que estime conveniente. La autenticidad de este documento puede ser verificada en los sistemas informáticos del Poder Judicial.
+        </p>
+    </div>
+
+    <!-- Footer del Documento -->
+    <div class="absolute bottom-16 left-16 right-16 text-center">
+        <div class="flex justify-center mb-4">
+            <div class="w-48 h-24 border border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-xs">
+                TIMBRE DIGITAL
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 font-mono">
+            Código de Verificación: <%= Math.random().toString(36).substring(7).toUpperCase() %>-<%= Date.now() %>
+        </p>
+    </div>
+
+</div>
+
+<%- include('../partials/footer') %>

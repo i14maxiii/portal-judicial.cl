@@ -1,16 +1,14 @@
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const { getDatabase } = require('./database');
+const User = require('../models/user');
 
 passport.serializeUser((user, done) => {
-    // Guardamos solo el ID en la sesión para ser ligeros
-    done(null, user.discord_id);
+    done(null, user.id); // Usamos el _id interno de Mongo
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
-        const db = await getDatabase();
-        const user = await db.get('SELECT * FROM users WHERE discord_id = ?', [id]);
+        const user = await User.findById(id);
         done(null, user);
     } catch (err) {
         done(err, null);
@@ -21,30 +19,27 @@ passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: process.env.DISCORD_CALLBACK_URL,
-    scope: ['identify', 'guilds'] // 'guilds' nos servirá si quieres validar roles del servidor luego
+    scope: ['identify', 'guilds']
 }, async (accessToken, refreshToken, profile, done) => {
     try {
-        const db = await getDatabase();
-        
-        // Verificar si el usuario ya existe
-        const existingUser = await db.get('SELECT * FROM users WHERE discord_id = ?', [profile.id]);
+        // Buscar si existe por discord_id
+        let user = await User.findOne({ discord_id: profile.id });
 
-        if (existingUser) {
-            // Actualizar avatar y nombre por si cambiaron en Discord
-            await db.run(
-                'UPDATE users SET username = ?, avatar = ? WHERE discord_id = ?',
-                [profile.username, profile.avatar, profile.id]
-            );
-            return done(null, existingUser);
+        if (user) {
+            // Actualizar datos
+            user.username = profile.username;
+            user.avatar = profile.avatar;
+            await user.save();
+            return done(null, user);
         } else {
-            // Crear nuevo usuario con rol por defecto 'funcionario'
-            await db.run(
-                'INSERT INTO users (discord_id, username, avatar, role) VALUES (?, ?, ?, ?)',
-                [profile.id, profile.username, profile.avatar, 'funcionario']
-            );
-            
-            const newUser = await db.get('SELECT * FROM users WHERE discord_id = ?', [profile.id]);
-            return done(null, newUser);
+            // Crear nuevo
+            user = await User.create({
+                discord_id: profile.id,
+                username: profile.username,
+                avatar: profile.avatar,
+                role: 'funcionario'
+            });
+            return done(null, user);
         }
     } catch (err) {
         console.error('Error en Discord Strategy:', err);

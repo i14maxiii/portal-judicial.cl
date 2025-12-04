@@ -6,19 +6,21 @@
     <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h2 class="text-3xl font-bold text-slate-800">Panel de Control</h2>
-            <p class="text-slate-500 mt-1">Bienvenido, funcionario. Seleccione una operación.</p>
+            <p class="text-slate-500 mt-1">
+                Bienvenido, <span class="font-bold text-blue-600"><%= user.username %></span>.
+            </p>
         </div>
         <div class="flex gap-3">
-            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
+            <a href="/causes/create" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition">
                 <i class="ph-bold ph-plus"></i> Nueva Causa
-            </button>
+            </a>
         </div>
     </div>
 
     <!-- Buscadores Rápidos -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <!-- Buscador Personas -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
             <div class="flex items-center gap-3 mb-4">
                 <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
                     <i class="ph-bold ph-users text-xl"></i>
@@ -26,7 +28,6 @@
                 <h3 class="font-bold text-slate-700">Buscar Persona</h3>
             </div>
             <form action="/search/person" method="GET" class="relative">
-                <!-- AGREGADO: name="q" -->
                 <input type="text" name="q" placeholder="RUT (ej: 12.345.xxx) o Nombre" required
                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition">
                 <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
@@ -34,7 +35,7 @@
         </div>
 
         <!-- Buscador Vehículos -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
             <div class="flex items-center gap-3 mb-4">
                 <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
                     <i class="ph-bold ph-car text-xl"></i>
@@ -42,7 +43,6 @@
                 <h3 class="font-bold text-slate-700">Buscar Vehículo</h3>
             </div>
             <form action="/search/vehicle" method="GET" class="relative">
-                <!-- AGREGADO: name="q" -->
                 <input type="text" name="q" placeholder="Patente (ej: ABCD12)" required
                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition">
                 <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
@@ -50,7 +50,7 @@
         </div>
 
         <!-- Buscador Causas -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
             <div class="flex items-center gap-3 mb-4">
                 <div class="p-2 bg-amber-100 text-amber-600 rounded-lg">
                     <i class="ph-bold ph-folder-open text-xl"></i>
@@ -58,7 +58,6 @@
                 <h3 class="font-bold text-slate-700">Buscar Causa</h3>
             </div>
             <form action="/search/cause" method="GET" class="relative">
-                <!-- AGREGADO: name="q" -->
                 <input type="text" name="q" placeholder="RUC o RIT" required
                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm transition">
                 <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
@@ -69,6 +68,7 @@
     <!-- Sección de Accesos Rápidos -->
     <h3 class="text-lg font-bold text-slate-800 mb-4">Gestión Operativa</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Botones "visuales" solicitados, por ahora sin ruta funcional específica -->
         <a href="#" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition group text-center flex flex-col items-center justify-center h-32">
             <i class="ph-duotone ph-file-plus text-3xl text-slate-400 group-hover:text-blue-500 mb-2 transition"></i>
             <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Ingresar Parte</span>
@@ -81,9 +81,11 @@
             <i class="ph-duotone ph-warning-circle text-3xl text-slate-400 group-hover:text-blue-500 mb-2 transition"></i>
             <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Incautaciones</span>
         </a>
-        <a href="#" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition group text-center flex flex-col items-center justify-center h-32">
-            <i class="ph-duotone ph-archive-box text-3xl text-slate-400 group-hover:text-blue-500 mb-2 transition"></i>
-            <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Archivo Judicial</span>
+        
+        <!-- Enlace a Papelera (Archivo Judicial) -->
+        <a href="/admin/trash" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-red-400 hover:shadow-md transition group text-center flex flex-col items-center justify-center h-32">
+            <i class="ph-duotone ph-trash text-3xl text-slate-400 group-hover:text-red-500 mb-2 transition"></i>
+            <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Papelera / Archivo</span>
         </a>
     </div>
 
