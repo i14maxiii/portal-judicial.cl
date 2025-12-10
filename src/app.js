@@ -72,8 +72,8 @@ app.get('/profile', isAuthenticated, (req, res) => {
     res.render('pages/profile', { title: 'Mi Perfil' });
 });
 
-app.get('/cv', isAuthenticated, (req, res) => {
-    res.render('pages/cv', { title: 'Hoja de Vida' });
+app.get('/historial', isAuthenticated, (req, res) => {
+    res.render('pages/historial', { title: 'Hoja de Vida' });
 });
 
 app.get('/certificate', isAuthenticated, (req, res) => {
