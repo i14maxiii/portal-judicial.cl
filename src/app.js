@@ -65,6 +65,7 @@ const hasRole = (rolesAllowed) => {
 // --- 6. Rutas Generales ---
 
 app.get('/', (req, res) => {
+    // Si hay error en el login, lo pasamos a la vista (opcional) o solo renderizamos
     res.render('pages/index', { title: 'Bienvenido - Poder Judicial' });
 });
 
@@ -210,7 +211,17 @@ app.post('/causes/destroy', hasRole(['admin', 'staff']), async (req, res) => {
 
 // --- Auth Discord ---
 app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/'));
+
+app.get('/auth/discord/callback', 
+    passport.authenticate('discord', { 
+        failureRedirect: '/?error=auth_failed' // Si falla, añade ?error=auth_failed a la URL
+    }), 
+    (req, res) => {
+        // Login exitoso: Redirige a la página principal
+        res.redirect('/'); 
+    }
+);
+
 app.get('/logout', (req, res, next) => { req.logout(e => { if(e) return next(e); res.redirect('/'); }); });
 
 const PORT = process.env.PORT || 3000;
