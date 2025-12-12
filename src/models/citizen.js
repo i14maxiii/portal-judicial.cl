@@ -4,7 +4,8 @@ const CitizenSchema = new mongoose.Schema({
     rut: { type: String, required: true, unique: true, index: true },
     nombre_completo: { type: String, required: true },
     fecha_nacimiento: { type: String },
-    antecedentes: { type: String, default: 'Sin antecedentes' },
+    // CAMBIO: Ahora es un Array de Strings para soportar múltiples antecedentes
+    antecedentes: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now }
 });
 

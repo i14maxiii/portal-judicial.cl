@@ -1,11 +1,21 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
-    discord_id: { type: String, required: true, unique: true },
+const userSchema = new mongoose.Schema({
+    // Estandarizamos: SIEMPRE usaremos discordId (camelCase)
+    discordId: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
     username: { type: String, required: true },
-    avatar: { type: String },
-    role: { type: String, default: 'funcionario', enum: ['funcionario', 'admin', 'staff', 'juez'] },
-    createdAt: { type: Date, default: Date.now }
-});
+    avatar: String,
+    role: { 
+        type: String, 
+        // Aceptamos 'civil' explícitamente para evitar el error anterior
+        enum: ['admin', 'juez', 'funcionario', 'civil'], 
+        default: 'civil' 
+    },
+    // Agregamos timestamps para saber cuándo se registraron
+}, { timestamps: true });
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', userSchema);

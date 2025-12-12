@@ -1,224 +1,7 @@
 <%- include('../partials/header') %>
 
-<!-- LIBRERÍAS DE FIREBASE (CDN) -->
-<!-- Necesarias para que la lógica funcione sin React -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, query, onSnapshot, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    // --- 1. CONFIGURACIÓN (Asegúrate de que estas variables globales existan o pégalas aquí) ---
-    // Si tu backend ya pasa 'firebaseConfig' al renderizar, úsalo. Si no, define tu config aquí.
-    const firebaseConfig = window.__firebase_config || { 
-        // Pega aquí tu config de firebase si no viene del servidor
-        // apiKey: "...", authDomain: "...", ...
-    };
-    
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = window.__app_id || 'default-app'; // O tu ID de app
-
-    // --- 2. LÓGICA DE UI ---
-    let currentUser = null;
-    let records = [];
-    let activeTab = 'all';
-
-    // Referencias al DOM
-    const recordsContainer = document.getElementById('records-list');
-    const modal = document.getElementById('simulation-modal');
-    const stats = {
-        cases: document.getElementById('stat-cases'),
-        fines: document.getElementById('stat-fines'),
-        bg: document.getElementById('stat-bg')
-    };
-
-    // Autenticación Anónima (o usa la sesión actual si ya existe)
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            loadRecords();
-        } else {
-            signInAnonymously(auth).catch(console.error);
-        }
-    });
-
-    // Cargar Datos en Tiempo Real
-    function loadRecords() {
-        if (!currentUser) return;
-        
-        const q = query(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'legal_records'));
-        
-        onSnapshot(q, (snapshot) => {
-            records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // Ordenar por fecha descendente
-            records.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-            
-            updateDashboard();
-            renderList();
-        });
-    }
-
-    // Actualizar Semáforo (Dashboard)
-    function updateDashboard() {
-        const countCases = records.filter(r => r.type === 'case' && r.status === 'open').length;
-        const countFines = records.filter(r => r.type === 'fine' && r.status === 'active').length;
-        const hasBackground = records.some(r => r.type === 'background');
-
-        // Función auxiliar para actualizar tarjetas
-        const updateCard = (elementId, count, type) => {
-            const el = document.getElementById(elementId);
-            const statusEl = document.getElementById(elementId + '-status');
-            const iconEl = document.getElementById(elementId + '-icon');
-            const wrapper = document.getElementById(elementId + '-wrapper');
-            
-            let status = 'success';
-            if (count > 0) status = type === 'case' ? 'danger' : 'warning';
-            
-            // Clases de Tailwind según estado
-            const styles = {
-                success: 'bg-emerald-50 border-emerald-100 text-emerald-700',
-                warning: 'bg-amber-50 border-amber-100 text-amber-700',
-                danger: 'bg-rose-50 border-rose-100 text-rose-700'
-            };
-            
-            // Limpiar clases anteriores y poner las nuevas
-            wrapper.className = `p-5 rounded-xl border flex items-center justify-between transition-shadow hover:shadow-md ${styles[status]}`;
-            
-            // Actualizar texto
-            el.innerText = count;
-            if(count === 0) statusEl.innerText = type === 'background' ? 'Intachable' : 'Al día';
-            else statusEl.innerText = type === 'case' ? 'Vigentes' : 'Impagas';
-        };
-
-        updateCard('count-cases', countCases, 'case');
-        updateCard('count-fines', countFines, 'fine');
-        
-        // Lógica especial para Antecedentes
-        const bgWrapper = document.getElementById('bg-wrapper');
-        const bgText = document.getElementById('bg-text');
-        if (hasBackground) {
-             bgWrapper.className = `p-5 rounded-xl border flex items-center justify-between transition-shadow hover:shadow-md bg-rose-50 border-rose-100 text-rose-700`;
-             bgText.innerText = "Registrados";
-        } else {
-             bgWrapper.className = `p-5 rounded-xl border flex items-center justify-between transition-shadow hover:shadow-md bg-emerald-50 border-emerald-100 text-emerald-700`;
-             bgText.innerText = "Limpios";
-        }
-    }
-
-    // Renderizar Lista
-    function renderList() {
-        const filtered = activeTab === 'all' ? records : records.filter(r => r.type === activeTab);
-        
-        recordsContainer.innerHTML = '';
-
-        if (filtered.length === 0) {
-            recordsContainer.innerHTML = `
-                <div class="py-16 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                    <p class="text-slate-400 text-sm italic">No hay registros recientes en esta categoría.</p>
-                </div>`;
-            return;
-        }
-
-        filtered.forEach(r => {
-            const isActive = ['active', 'open'].includes(r.status);
-            const statusColor = isActive ? 'bg-rose-500' : 'bg-emerald-500';
-            
-            // Configuración visual según tipo
-            let badgeClass = '';
-            let label = '';
-            if(r.type === 'case') { label = 'Causa'; badgeClass = 'bg-purple-100 text-purple-700'; }
-            else if(r.type === 'fine') { label = 'Multa'; badgeClass = 'bg-orange-100 text-orange-700'; }
-            else { label = 'Antecedente'; badgeClass = 'bg-red-100 text-red-700'; }
-
-            const html = `
-                <div class="group bg-white border border-slate-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all relative overflow-hidden flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <div class="absolute left-0 top-0 bottom-0 w-1 ${statusColor}"></div>
-                    <div class="flex-1 pl-3">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${badgeClass}">
-                                ${label}
-                            </span>
-                            <span class="text-xs text-slate-400 font-mono">#${r.id.slice(-6).toUpperCase()}</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-700 transition-colors">${r.title}</h3>
-                        <p class="text-sm text-slate-600 mt-1">${r.description}</p>
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                            <span>📅 ${r.date}</span>
-                            ${r.amount ? `<span>💰 $${r.amount}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="pl-3 md:pl-0 flex flex-col items-end gap-2">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold border ${isActive ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}">
-                            ${translateStatus(r.status)}
-                        </span>
-                        ${r.type === 'fine' && isActive ? `<button class="text-xs bg-slate-900 text-white px-3 py-1.5 rounded hover:bg-blue-600 transition-colors">Pagar Ahora</button>` : ''}
-                    </div>
-                </div>
-            `;
-            recordsContainer.insertAdjacentHTML('beforeend', html);
-        });
-    }
-
-    function translateStatus(s) {
-        const map = { 'open': 'VIGENTE', 'closed': 'CERRADA', 'active': 'IMPAGO', 'paid': 'PAGADO', 'resolved': 'RESUELTO' };
-        return map[s] || s.toUpperCase();
-    }
-
-    // --- 3. EVENT LISTENERS ---
-    
-    // Tabs
-    window.setTab = (tab) => {
-        activeTab = tab;
-        // Actualizar estilos de botones
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            if(btn.dataset.tab === tab) {
-                btn.classList.add('border-blue-600', 'text-blue-600');
-                btn.classList.remove('border-transparent', 'text-slate-500');
-            } else {
-                btn.classList.remove('border-blue-600', 'text-blue-600');
-                btn.classList.add('border-transparent', 'text-slate-500');
-            }
-        });
-        renderList();
-    };
-
-    // Modal
-    window.toggleModal = () => {
-        modal.classList.toggle('hidden');
-        modal.classList.toggle('flex');
-    };
-
-    // Formulario
-    document.getElementById('sim-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentUser) return;
-
-        const formData = {
-            type: document.getElementById('inp-type').value,
-            status: document.getElementById('inp-status').value,
-            title: document.getElementById('inp-title').value,
-            description: document.getElementById('inp-desc').value,
-            date: document.getElementById('inp-date').value,
-            amount: document.getElementById('inp-amount').value,
-            createdAt: serverTimestamp()
-        };
-
-        try {
-            await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'legal_records'), formData);
-            toggleModal();
-            e.target.reset();
-        } catch (err) {
-            console.error(err);
-            alert('Error al guardar');
-        }
-    });
-
-</script>
-
 <div class="max-w-4xl mx-auto px-4 py-10 min-h-screen">
     
-    <!-- Breadcrumb -->
     <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <a href="/dashboard" class="hover:text-blue-600 flex items-center gap-1">
             <i class="ph-bold ph-house"></i> Inicio
@@ -227,139 +10,97 @@
         <span class="font-medium text-slate-900">Hoja de Vida</span>
     </div>
 
-    <!-- Header Sección -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-200 pb-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Hoja de Vida</h1>
-            <p class="text-slate-500 mt-1">Registro histórico de actividad, sanciones y antecedentes.</p>
+            <p class="text-slate-500 mt-1">Registro oficial en Base de Datos Nacional.</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="toggleModal()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                <i class="ph-bold ph-plus"></i> Simular Registro
-            </button>
             <button class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200">
                 <i class="ph-bold ph-download-simple"></i> PDF
             </button>
         </div>
     </div>
 
-    <!-- SEMÁFORO (Dashboard Cards) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <!-- Card Causas -->
-        <div id="count-cases-wrapper" class="p-5 rounded-xl border bg-white border-slate-200 flex items-center justify-between">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Causas</p>
-                <div class="flex items-baseline gap-2">
-                    <span id="count-cases" class="text-2xl font-bold text-slate-800">0</span>
-                    <span id="count-cases-status" class="text-xs font-medium opacity-80">Sin pendientes</span>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="ph-fill ph-warning text-yellow-500 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-bold text-yellow-800">Acceso Limitado</h3>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Tu usuario de Discord no tiene un RUT vinculado en el sistema. 
+                        Solicita a un administrador (Fiscalía) que actualice tu perfil de usuario.
+                    </p>
                 </div>
             </div>
-            <div class="p-3 rounded-lg bg-slate-100 text-slate-600">
+        </div>
+    <% } %>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="<%= stats.cases > 0 ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700' %> p-5 rounded-xl border flex items-center justify-between transition-shadow hover:shadow-md">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Causas Vigentes</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold"><%= stats.cases %></span>
+                    <span class="text-xs font-medium opacity-80"><%= stats.cases > 0 ? 'Abiertas' : 'Sin pendientes' %></span>
+                </div>
+            </div>
+            <div class="p-3 rounded-lg bg-white/50">
                 <i class="ph-bold ph-gavel text-xl"></i>
             </div>
         </div>
 
-        <!-- Card Multas -->
-        <div id="count-fines-wrapper" class="p-5 rounded-xl border bg-white border-slate-200 flex items-center justify-between">
+        <div class="bg-slate-50 border-slate-100 text-slate-500 p-5 rounded-xl border flex items-center justify-between transition-shadow hover:shadow-md">
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Multas</p>
                 <div class="flex items-baseline gap-2">
-                    <span id="count-fines" class="text-2xl font-bold text-slate-800">0</span>
-                    <span id="count-fines-status" class="text-xs font-medium opacity-80">Al día</span>
+                    <span class="text-2xl font-bold text-slate-700">--</span>
+                    <span class="text-xs font-medium opacity-80">Próximamente</span>
                 </div>
             </div>
-            <div class="p-3 rounded-lg bg-slate-100 text-slate-600">
+            <div class="p-3 rounded-lg bg-white/50">
                 <i class="ph-bold ph-warning-octagon text-xl"></i>
             </div>
         </div>
-
-        <!-- Card Antecedentes -->
-        <div id="bg-wrapper" class="p-5 rounded-xl border bg-white border-slate-200 flex items-center justify-between">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Antecedentes</p>
-                <div class="flex items-baseline gap-2">
-                    <span id="bg-text" class="text-lg font-bold text-slate-800">Consultando...</span>
-                </div>
-            </div>
-            <div class="p-3 rounded-lg bg-slate-100 text-slate-600">
-                <i class="ph-bold ph-shield text-xl"></i>
-            </div>
-        </div>
     </div>
 
-    <!-- Pestañas -->
-    <div class="mb-6">
-        <div class="flex gap-6 border-b border-slate-200 overflow-x-auto">
-            <button onclick="setTab('all')" data-tab="all" class="tab-btn pb-3 px-1 text-sm font-medium border-b-2 border-blue-600 text-blue-600 transition-all">Todo el Historial</button>
-            <button onclick="setTab('case')" data-tab="case" class="tab-btn pb-3 px-1 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-all">Causas</button>
-            <button onclick="setTab('fine')" data-tab="fine" class="tab-btn pb-3 px-1 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-all">Multas</button>
-            <button onclick="setTab('background')" data-tab="background" class="tab-btn pb-3 px-1 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-all">Antecedentes</button>
-        </div>
-    </div>
+    <div class="space-y-4">
+        <% if (records.length === 0) { %>
+            <div class="py-16 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <i class="ph-duotone ph-folder-notch-open text-4xl text-slate-300 mb-2"></i>
+                <p class="text-slate-500 text-sm font-medium">No se encontraron registros recientes.</p>
+                <p class="text-slate-400 text-xs">Tus causas asignadas aparecerán aquí.</p>
+            </div>
+        <% } else { %>
+            <% records.forEach(r => { %>
+                <div class="group bg-white border border-slate-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all relative overflow-hidden flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    
+                    <div class="absolute left-0 top-0 bottom-0 w-1 <%= r.status === 'open' ? 'bg-rose-500' : 'bg-slate-300' %>"></div>
+                    
+                    <div class="flex-1 pl-3">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
+                                <i class="ph-bold ph-folder"></i> Causa
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono"><%= r.date %></span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
+                            <%= r.title %>
+                        </h3>
+                        <p class="text-sm text-slate-600 mt-1 line-clamp-2"><%= r.description %></p>
+                    </div>
 
-    <!-- Lista de Registros -->
-    <div id="records-list" class="space-y-4 min-h-[200px]">
-        <!-- Skeleton Loading -->
-        <div class="animate-pulse space-y-4">
-            <div class="h-24 bg-slate-200 rounded-lg"></div>
-            <div class="h-24 bg-slate-200 rounded-lg"></div>
-        </div>
-    </div>
-
-</div>
-
-<!-- MODAL SIMULACIÓN (Oculto por defecto) -->
-<div id="simulation-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="font-bold text-slate-800">Simular Registro (Admin)</h3>
-            <button onclick="toggleModal()" class="text-slate-400 hover:text-slate-600">
-                <i class="ph-bold ph-x"></i>
-            </button>
-        </div>
-        <form id="sim-form" class="p-6 space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Tipo</label>
-                    <select id="inp-type" class="w-full mt-1 p-2 border border-slate-300 rounded text-sm">
-                        <option value="fine">Multa</option>
-                        <option value="case">Causa</option>
-                        <option value="background">Antecedente</option>
-                    </select>
+                    <div class="pl-3 md:pl-0 flex flex-col items-end gap-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold border <%= r.status === 'open' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-slate-100 text-slate-600 border-slate-200' %>">
+                            <%= r.status === 'open' ? 'VIGENTE' : 'CERRADA' %>
+                        </span>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Estado</label>
-                    <select id="inp-status" class="w-full mt-1 p-2 border border-slate-300 rounded text-sm">
-                        <option value="active">Activo/Impago</option>
-                        <option value="paid">Pagado</option>
-                        <option value="open">Vigente</option>
-                        <option value="closed">Cerrada</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="text-xs font-bold text-slate-500 uppercase">Título</label>
-                <input id="inp-title" type="text" required class="w-full mt-1 p-2 border border-slate-300 rounded text-sm" placeholder="Ej: Exceso de velocidad">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-slate-500 uppercase">Descripción</label>
-                <textarea id="inp-desc" required rows="2" class="w-full mt-1 p-2 border border-slate-300 rounded text-sm"></textarea>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Fecha</label>
-                    <input id="inp-date" type="date" required class="w-full mt-1 p-2 border border-slate-300 rounded text-sm">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Monto ($)</label>
-                    <input id="inp-amount" type="number" class="w-full mt-1 p-2 border border-slate-300 rounded text-sm" placeholder="0">
-                </div>
-            </div>
-            <div class="pt-4 flex justify-end gap-3">
-                <button type="button" onclick="toggleModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded text-sm font-medium">Cancelar</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded text-sm font-medium">Guardar</button>
-            </div>
-        </form>
+            <% }) %>
+        <% } %>
     </div>
 </div>
 
